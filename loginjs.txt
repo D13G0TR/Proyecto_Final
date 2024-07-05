@@ -1,0 +1,49 @@
+// public/login.js
+
+import express from "express";
+import bcrypt from "bcrypt";
+import connection from "../db.js"; // Importar la configuración de la base de datos
+
+const router = express.Router();
+
+router.post("/", async (req, res) => {
+    const { email, password } = req.body;
+
+    console.log("Datos recibidos:", email, password); // Verifica los datos recibidos
+
+    // Buscar usuario por correo electrónico
+    const user = await findUserByEmail(email);
+    if (!user) {
+        return res.status(400).send("Correo electrónico o contraseña incorrectos.");
+    }
+
+    // Verificar la contraseña
+    const passwordMatch = await bcrypt.compare(password, user.Contrasena);
+    if (!passwordMatch) {
+        return res.status(400).send("Correo electrónico o contraseña incorrectos.");
+    }
+
+    console.log("Inicio de sesión exitoso"); // Verifica si el inicio de sesión fue exitoso
+    req.session.userId = user.Id; // Guardar el ID del usuario en la sesión
+    res.redirect("/perfil"); // Redirigir a perfil
+});
+
+// Función para buscar usuario por correo electrónico
+async function findUserByEmail(email) {
+    return new Promise((resolve, reject) => {
+        const findUserQuery = "SELECT * FROM Usuarios WHERE CorreoElectronico = ?";
+        connection.query(findUserQuery, [email], (err, result) => {
+            if (err) {
+                console.error("Error al buscar el usuario:", err);
+                return reject(err);
+            }
+            if (result.length === 0) {
+                return resolve(null);
+            }
+            resolve(result[0]);
+        });
+    });
+}
+
+export default router;
+
